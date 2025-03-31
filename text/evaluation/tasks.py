@@ -66,6 +66,25 @@ def mmlu_cloze_prompt(line, task_name: str = None):
         instruction=f"The following are questions about {topic.replace('_', ' ')}.\n",
     )
 
+def mmlu_mc_prompt(line, task_name: str = None):
+    letters = ["A", "B", "C", "D"]
+    topic = line["subject"]
+    query = f"The following are multiple choice questions (with answers) about {topic.replace('_', ' ')}.\n\n"
+    query += line["question"] + "\n"
+    query += "".join([f"{key}. {choice}\n" for key, choice in zip(letters, line["choices"])])
+    query += "Answer:"
+
+    gold_ix = letters.index(line["answer"]) if isinstance(line["answer"], str) else line["answer"]
+
+    return Doc(
+        task_name=task_name,
+        query=query,
+        choices=[" A", " B", " C", " D"],
+        gold_index=gold_ix,
+        instruction=f"The following are multiple choice questions (with answers) about {topic.replace('_', ' ')}.\n\n",
+        #target_for_fewshot_sorting=[" A", " B", " C", " D"][gold_ix],
+    )
+
 def bbh_prompt(line, task_name: str = None):
     return Doc(
         task_name=task_name,
@@ -205,7 +224,19 @@ TASKS_TABLE = [
         generation_size=-1,
     ),
     LightevalTaskConfig(
-        name="mmlu",
+        name="mmlu_mc",
+        prompt_function=mmlu_mc_prompt,
+        suite=["custom"],
+        hf_repo="cais/mmlu",
+        hf_subset="all",
+        hf_revision="c30699e8356da336a370243923dbaf21066bb9fe",
+        hf_avail_splits=["test"],
+        evaluation_splits=["test"],
+        metric=[Metrics.loglikelihood_acc_norm_nospace],
+        generation_size=1,
+    ),
+    LightevalTaskConfig(
+        name="mmlu_cf",
         prompt_function=mmlu_cloze_prompt,
         suite=["custom"],
         hf_repo="cais/mmlu",
@@ -301,42 +332,15 @@ MATH_TASKS = [
 
 TASKS_TABLE.extend(MATH_TASKS)
 
-## MMLU ##
-class CustomMMLUEvaluationTask(LightevalTaskConfig):
-    def __init__(
-        self,
-        name,
-        prompt_function=None,
-        hf_repo="lighteval/mmlu",
-        hf_subset=None,
-        #  metric=[Metrics.loglikelihood_acc_single_token],
-        metric=[Metrics.loglikelihood_acc, Metrics.loglikelihood_acc_norm_nospace],
-        hf_avail_splits=None,
-        evaluation_splits=["test"],
-        few_shots_split="dev",
-        few_shots_select=None,
-        suite=["custom"],
-        generation_size=-1,
-        stop_sequence=None,
-        output_regex=None,
-        frozen=False,
-    ):
-        super().__init__(
-            name=name,
-            prompt_function=prompt_function,
-            suite=suite,
-            hf_repo=hf_repo,
-            hf_subset=hf_subset,
-            metric=metric,
-            hf_avail_splits=hf_avail_splits,
-            evaluation_splits=evaluation_splits,
-            few_shots_split=few_shots_split,
-            few_shots_select=few_shots_select,
-            generation_size=generation_size,
-            stop_sequence=stop_sequence,
-            output_regex=output_regex,
-            frozen=frozen,
-        )
+from lighteval.tasks.multilingual.tasks import xcsqa_tasks, mlmm_hellaswag_tasks, belebele_tasks
+
+TASKS_TABLE.extend(
+    [
+        *xcsqa_tasks,
+        *mlmm_hellaswag_tasks,
+        *belebele_tasks,
+    ]
+)
 
 
 if __name__ == "__main__":

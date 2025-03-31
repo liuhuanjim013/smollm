@@ -1,3 +1,6 @@
-lighteval[accelerate,extended_tasks,vllm] @ git+https://github.com/huggingface/lighteval@ea46419a93fb390e8f694f7c6c64c1e684487c9d
+lighteval[extended_tasks,vllm,math,multilingual]==0.8.*
+vllm==0.8.1
+transformers>=4.50.1
 fsspec>=2024.3.0
 word2number
+langdetect
